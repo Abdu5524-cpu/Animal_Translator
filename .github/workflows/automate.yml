@@ -16,9 +16,9 @@ jobs:
       - name: 📤 Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.HOSTING_HOSTNAME }}
-          username: ${{ secrets.HOSTING_USERNAME }}
-          password: ${{ secrets.HOSTING_PASSWORD }}
+          server: ${{ secrets.FTP_HOSTNAME }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /htdocs/      # This is usually the folder your files go into
           local-dir: ./             # Deploy everything from repo root
           protocol: ftp             # Default is 'ftp' but you can specify
