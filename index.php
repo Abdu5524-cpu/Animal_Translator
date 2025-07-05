@@ -51,7 +51,7 @@
             echo '<a href="register.php" class="auth-button">Register</a>';
         }
         ?>
-        <a href="#pricing">Pricing</a>
+        <a href="#pricing">Pricer</a>
         <a href="#contact">Contact Us</a>
       </div>
     </div>
