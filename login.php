@@ -2,7 +2,12 @@
 // Enable full error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+session_start(); 
 
+if (isset($_SESSION['username'])) {
+    header("Location: index.php");
+    exit();
+}
 $error = "";
 $tokenResponse = "";
 
@@ -37,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // For web login fallback (legacy)
                 $tokenResponse = $token;
+                $_SESSION['username'] = $username; // Store user info in session
+                header("Location: index.php"); // Redirect to dashboard
             }
         } else {
             $error = "Invalid username or password.";
