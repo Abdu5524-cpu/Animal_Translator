@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-$apikey = OPENAI_API_KEY;
+$apiKey = getenv("API_KEY");
+
 $input = json_decode(file_get_contents('php://input'), true);
 $userMessage = $_input['message'] ?? '';
 
