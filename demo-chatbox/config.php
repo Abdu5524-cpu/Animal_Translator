@@ -1,0 +1,3 @@
+<?php
+// config.php
+define('OPENAI_API_KEY', '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');

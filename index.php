@@ -89,6 +89,12 @@
 
   <div class="translator-heading">The Animal Translator</div>
 
+  <div>
+    <a href="demo-chatbox/index.html" class="cta-button">
+      <button>Try the Demo</button>
+    </a>
+  </div>
+
   <div class="image-container">
     <img src="pictures/dog-1.jpg" class="imagestyle" alt="A person using the Animal Translator app with their dog" width="560" height="280" />
     <img src="pictures/dog-2.jpg" class="imagestyle" alt="Features of the Animal Translator app" width="560" height="280" />
