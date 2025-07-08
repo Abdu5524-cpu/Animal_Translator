@@ -1,5 +1,5 @@
 <?php
-$apiKey = getenv("API_KEY");
+$apiKey = getenv("APIKEY");
 
 $input = json_decode(file_get_contents('php://input'), true);
 $userMessage = $_input['message'] ?? '';
