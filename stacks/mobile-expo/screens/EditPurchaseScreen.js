@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 export default function EditPurchaseScreen({ route, navigation }) {
-  const { username, purchase_id, animal: initialAnimal } = route.params;
+  const { username, purchaseId, currentAnimal } = route.params;
+  const purchase_id = purchaseId;
+  const initialAnimal = currentAnimal;
   const [animal, setAnimal] = useState(initialAnimal);
   const [message, setMessage] = useState('');
 
@@ -16,7 +19,7 @@ export default function EditPurchaseScreen({ route, navigation }) {
     }
     try {
       const response = await axios.get(
-        'http://172.21.163.231/animal-translator/updatePurchase_api.php',
+        `${API_BASE_URL}/updatePurchase_api.php`,
         {
           params: { purchase_id, animal },
           headers: {

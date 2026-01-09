@@ -19,6 +19,7 @@ import axios from 'axios';
 import { Swipeable } from 'react-native-gesture-handler';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme';
+import { API_BASE_URL } from '../config/api';
 
 export default function PurchaseListScreen({ navigation, route }) {
   const { username } = route.params;
@@ -33,7 +34,7 @@ export default function PurchaseListScreen({ navigation, route }) {
     setLoading(true);
     try {
       const { data } = await axios.get(
-        `http://172.21.163.231/animal-translator/getPurchase_api.php?username=${encodeURIComponent(
+        `${API_BASE_URL}/getPurchase_api.php?username=${encodeURIComponent(
           username
         )}`
       );
@@ -70,7 +71,7 @@ export default function PurchaseListScreen({ navigation, route }) {
   const handleRefund = async id => {
     try {
       const res = await axios.get(
-        `http://172.21.163.231/animal-translator/refundPurchase_api.php?purchase_id=${id}`
+        `${API_BASE_URL}/refundPurchase_api.php?purchase_id=${id}`
       );
       if (res.data.success) {
         Alert.alert('Refunded', res.data.message);

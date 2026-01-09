@@ -90,7 +90,7 @@
   <div class="translator-heading">The Animal Translator</div>
 
   <div>
-    <a href="demo-chatbox/index.html" class="cta-button">
+    <a href="../demo-chat/demo.html" class="cta-button">
       <button>Try the Demo</button>
     </a>
   </div>

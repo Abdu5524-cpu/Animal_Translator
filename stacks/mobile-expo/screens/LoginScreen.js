@@ -1,51 +1,42 @@
-// frontend-app/screens/RegisterScreen.js
+// frontend-app/screens/LoginScreen.js
 import React, { useState } from 'react';
-import {
-  ScrollView,
-  View,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Text,
-} from 'react-native';
+import { ScrollView, View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { Card, TextInput as PaperInput, Button as PaperButton } from 'react-native-paper';
 import axios from 'axios';
 import { theme } from '../theme';
+import { API_BASE_URL } from '../config/api';
 
 const jakeLogo = require('../assets/images/jake.png');
 
-export default function RegisterScreen({ navigation }) {
+export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleRegister = async () => {
-    if (!username.trim() || !password || password !== confirm) {
-      setMessage('⚠️ Please fill out all fields and make sure passwords match.');
-      return;
-    }
+  const handleLogin = async () => {
+    const safeUsername = encodeURIComponent(username);
+    const safePassword = encodeURIComponent(password);
 
     try {
-      const res = await axios.get(
-        `http://172.21.163.231/animal-translator/register_api_get.php`,
+      const response = await axios.get(
+        `${API_BASE_URL}/login_api_get.php?username=${safeUsername}&password=${safePassword}`,
         {
-          params: { username, password, confirm_password: confirm },
           headers: {
-            Accept: 'application/json',
             'User-Agent': 'Mozilla/5.0',
+            'Accept': 'application/json',
           },
         }
       );
-      if (res.data.success) {
-        setMessage('✅ Registration successful! Redirecting...');
-        setTimeout(() => navigation.replace('Login'), 1500);
+
+      if (response.data.success) {
+        setMessage('✅ Login successful!');
+        navigation.replace('Purchases', { username });
       } else {
-        setMessage(`❌ ${res.data.message}`);
+        setMessage('❌ Login failed: ' + response.data.message);
       }
-    } catch (err) {
-      console.error(err);
-      setMessage('⚠️ Network error, please try again.');
+    } catch (error) {
+      console.error('Axios error:', error);
+      setMessage('⚠️ Error connecting to server.');
     }
   };
 
@@ -55,9 +46,9 @@ export default function RegisterScreen({ navigation }) {
 
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.title}>Register</Text>
+          <Text style={styles.title}>Login</Text>
           <Text style={styles.subtitle}>
-            Create your Animal Translator account
+            Welcome to the Animal Translator app!
           </Text>
 
           <PaperInput
@@ -68,7 +59,6 @@ export default function RegisterScreen({ navigation }) {
             outlineColor={theme.colors.primary}
             activeOutlineColor={theme.colors.primary}
             style={styles.input}
-            autoCapitalize="none"
           />
 
           <PaperInput
@@ -82,37 +72,26 @@ export default function RegisterScreen({ navigation }) {
             style={styles.input}
           />
 
-          <PaperInput
-            label="Confirm Password"
-            value={confirm}
-            onChangeText={setConfirm}
-            secureTextEntry
-            mode="outlined"
-            outlineColor={theme.colors.primary}
-            activeOutlineColor={theme.colors.primary}
-            style={styles.input}
-          />
-
           <PaperButton
             mode="contained"
-            onPress={handleRegister}
+            onPress={handleLogin}
             contentStyle={styles.buttonContent}
             style={styles.button}
           >
-            REGISTER
+            Login
           </PaperButton>
 
-          {message ? (
+          {message !== '' && (
             <Text style={styles.message}>{message}</Text>
-          ) : null}
+          )}
 
           <TouchableOpacity
             style={styles.linkContainer}
-            onPress={() => navigation.replace('Login')}
+            onPress={() => navigation.navigate('Register')}
           >
             <Text style={styles.linkText}>
-              Already have an account?{' '}
-              <Text style={styles.linkAccent}>Login here.</Text>
+              Don’t have an account?{' '}
+              <Text style={styles.linkAccent}>Register here.</Text>
             </Text>
           </TouchableOpacity>
         </Card.Content>

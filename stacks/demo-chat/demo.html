@@ -49,7 +49,7 @@
     button {
       padding: 10px 20px;
       font-size: 16px;
-      background-color: #4CAF50;
+      background-color: #187795;
       color: white;
       border: none;
       border-radius: 5px;
@@ -57,10 +57,10 @@
     }
 
     button:hover {
-      background-color: #45a049;
+      background-color: #187795;
     }
   </style>
-<head>
+</head>
 
 <body>
     <div id="chat-box"></div>
@@ -74,16 +74,33 @@
 
             document.getElementById('chat-box').innerHTML += `<p><b>You:</b> ${userText}</p>`;
 
+            input.value = '';
+
             // Send the message to the server
-            const response = await fetch('ai_chat.php', {
+            const response = await fetch('chat.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userText })
-            });
+            })
 
-            const data = await response.json();
-            document.getElementById('chat-box').innerHTML += `<p><b>AI:</b> ${data.reply}</p>`;
-            input.value = '';
-        }
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.reply) {
+                    throw new Error("No reply received from AI.");
+                }
+
+            document.getElementById("chat-box").innerHTML += `<p><b>AI:</b> ${data.reply}</p>`;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("chat-box").innerHTML += `<p><b>Error:</b> ${error.message}</p>`;
+            });
+}
     </script>
 </body>
+</html>

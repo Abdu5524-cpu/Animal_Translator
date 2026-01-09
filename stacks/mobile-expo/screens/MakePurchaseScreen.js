@@ -13,6 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import axios from 'axios';
 import { theme } from '../theme';
+import { API_BASE_URL } from '../config/api';
 
 const animalMessages = {
   Dog: "🐶 Woof! Let's talk about squirrels.",
@@ -39,7 +40,7 @@ export default function MakePurchaseScreen({ navigation, route }) {
 
     try {
       const res = await axios.get(
-        `http://172.21.163.231/animal-translator/makePurchase_api.php`,
+        `${API_BASE_URL}/makePurchase_api.php`,
         {
           params: { username, animal: selectedAnimal },
           headers: {

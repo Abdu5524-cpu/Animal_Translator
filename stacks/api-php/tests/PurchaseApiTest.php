@@ -11,8 +11,9 @@ final class PurchaseApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $baseUri = getenv('API_BASE_URI') ?: 'http://localhost/stacks/api-php/';
         $this->client = new Client([
-            'base_uri'    => 'http://localhost/animal-translator/',
+            'base_uri'    => $baseUri,
             'http_errors' => false,
         ]);
     }
