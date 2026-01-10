@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-require_once "conn.php"; // ✅ use your local XAMPP connection
+require_once __DIR__ . "/../config/db.php";
 
 $username = $_GET['username'] ?? '';
 $password = $_GET['password'] ?? '';

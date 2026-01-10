@@ -27,7 +27,7 @@ if ($password !== $confirm) {
   $response['debug'][] = 'Missing fields';
   $response['message'] = "Missing username or password.";
 } else {
-  require_once __DIR__ . "/conn.php";
+  require_once __DIR__ . "/../config/db.php";
   $response['debug'][] = "Connected to DB: " . $config->host_info;
 
   // Dump all rows in users

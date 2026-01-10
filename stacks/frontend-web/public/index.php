@@ -1,3 +1,7 @@
+<?php
+require_once __DIR__ . '/../config/app.php';
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +28,6 @@
         <a href="index.php">Home</a>
         <a href="about.php">About</a>
         <?php
-        session_start();
         if (isset($_SESSION['username'])) {
             // Display welcome message on left side when logged in
             echo '<p class="welcome-message">Welcome, ' . $_SESSION['username'] . '!</p>';
@@ -90,7 +93,7 @@
   <div class="translator-heading">The Animal Translator</div>
 
   <div>
-    <a href="../demo-chat/demo.html" class="cta-button">
+    <a href="<?php echo htmlspecialchars($demoChatUrl); ?>" class="cta-button">
       <button>Try the Demo</button>
     </a>
   </div>

@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-require_once __DIR__ . "/conn.php";
+require_once __DIR__ . "/../config/db.php";
 
 $id     = $_GET['purchase_id'] ?? '';
 $animal = $_GET['animal']      ?? '';

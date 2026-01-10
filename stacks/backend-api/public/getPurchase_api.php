@@ -12,7 +12,7 @@ if (empty($username)) {
     exit();
 }
 
-require_once __DIR__ . "/conn.php";  // ✅ Use local DB connection
+require_once __DIR__ . "/../config/db.php";
 
 if ($config->connect_error) {
     echo json_encode([

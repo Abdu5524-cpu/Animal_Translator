@@ -11,7 +11,7 @@ class ApiTest extends TestCase
 
     protected function setUp(): void
     {
-        $baseUri = getenv('API_BASE_URI') ?: 'http://localhost/stacks/api-php/';
+        $baseUri = getenv('API_BASE_URI') ?: 'http://localhost/stacks/backend-api/public/';
         $this->client = new Client([
             'base_uri'    => $baseUri,
             'http_errors' => false,

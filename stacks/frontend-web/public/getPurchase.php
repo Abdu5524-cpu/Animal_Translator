@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once "conn.php";
+require_once __DIR__ . "/../config/db.php";
 
 function getFilteredPurchases($sort, $filter) {
     global $config;

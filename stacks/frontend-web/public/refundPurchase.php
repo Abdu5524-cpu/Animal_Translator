@@ -1,26 +1,19 @@
 <?php
 session_start();
-require_once "conn.php";
+require_once __DIR__ . "/../config/db.php";
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && isset($_POST["animal"])) {
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"])) {
     $purchase_id = $_POST["purchase_id"];
-    $animal = $_POST["animal"];
     $username = $_SESSION["username"];
 
-    // If "Other" was selected, use the value from the custom input
-    if ($animal === "Other" && !empty($_POST["other_animal"])) {
-        $animal = $_POST["other_animal"];
-    }
-
-    $sql = "UPDATE animals SET animal = ? WHERE purchase_id = ? AND username = ?";
+    $sql = "DELETE FROM animals WHERE purchase_id = ? AND username = ?";
     $stmt = $config->prepare($sql);
-    $stmt->bind_param("sis", $animal, $purchase_id, $username);
+    $stmt->bind_param("is", $purchase_id, $username);
 
     if ($stmt->execute()) {
-        $message = "Update successful for Purchase ID: $purchase_id.";
+        $message = "Refund successful for Purchase ID: $purchase_id.";
     } else {
-        $message = "Update failed. Please try again.";
+        $message = "Refund failed. Please try again.";
     }
 }
 ?>
@@ -29,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && iss
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Update a Purchase</title>
+    <title>Refund a Purchase</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/styles.css">
     <style>
@@ -42,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && iss
             overflow-y: auto;
         }
 
-        .update-container {
+        .refund-container {
             max-width: 600px;
             margin: 100px auto;
             padding: 40px;
@@ -62,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && iss
             color: #444;
         }
 
-        input[type="text"], select {
+        input[type="text"] {
             width: 80%;
             padding: 10px;
             font-size: 16px;
@@ -104,54 +97,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && iss
             color: green;
             font-weight: bold;
         }
-
-        #other-animal-box {
-            display: none;
-            margin-top: 10px;
-        }
     </style>
-    <script>
-        function checkOtherAnimal(select) {
-            const otherBox = document.getElementById('other-animal-box');
-            if (select.value === "Other") {
-                otherBox.style.display = 'block';
-            } else {
-                otherBox.style.display = 'none';
-            }
-        }
-    </script>
 </head>
 <body>
-    <div class="update-container">
-        <h1>Update a Purchase</h1>
-        <p>Choose a new animal for your purchase!</p>
+    <div class="refund-container">
+        <h1>Refund a Purchase</h1>
+        <p>What is the ID number of the purchase you'd like to refund?</p>
 
-        <form method="POST" action="updatePurchase.php">
+        <form method="POST" action="refundPurchase.php">
             <input type="text" name="purchase_id" placeholder="Enter Purchase ID..." 
                 value="<?php echo isset($_GET['purchase_id']) ? htmlspecialchars($_GET['purchase_id']) : ''; ?>" 
                 required>
             <?php if (isset($_GET['purchase_id'])): ?>
                 <p style="color: #187795; font-size: 14px; margin-top: 8px;">
-                    Updating Purchase ID: <?php echo htmlspecialchars($_GET['purchase_id']); ?>
+                    Refunding Purchase ID: <?php echo htmlspecialchars($_GET['purchase_id']); ?>
                 </p>
             <?php endif; ?>
-            <br><br>
-
-            <select name="animal" onchange="checkOtherAnimal(this)" required>
-                <option value="">-- Select Animal --</option>
-                <option value="Dog">Dog</option>
-                <option value="Cat">Cat</option>
-                <option value="Bird">Bird</option>
-                <option value="Rabbit">Rabbit</option>
-                <option value="Other">Other</option>
-            </select>
-
-            <div id="other-animal-box">
-                <input type="text" name="other_animal" placeholder="Enter Custom Animal Name...">
-            </div>
-
             <br>
-            <button type="submit" class="submit-btn">Submit Update</button>
+            <button type="submit" class="submit-btn">Submit Refund</button>
         </form>
 
         <?php if (isset($message)): ?>
