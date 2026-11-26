@@ -1,0 +1,51 @@
+name: Deploy app to GitHub Pages
+
+# Manual only: nothing is published until someone runs this from the Actions tab.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stacks/frontend-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: stacks/frontend-app/package-lock.json
+      - run: npm ci
+      - name: Export the web build
+        env:
+          # Set this repository variable to the backend's public URL.
+          EXPO_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          test -n "$EXPO_PUBLIC_API_BASE_URL" || { echo "Set the API_BASE_URL repository variable first"; exit 1; }
+          npx expo export --platform web
+          # Single page app: serve index.html for unknown paths too.
+          cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: stacks/frontend-app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -23,6 +23,9 @@
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/Animal_Translator"
     }
   }
 }
