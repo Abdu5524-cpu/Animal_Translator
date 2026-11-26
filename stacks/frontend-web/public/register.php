@@ -8,39 +8,40 @@ if (isset($_SESSION['username'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
-    if ($password !== $confirm_password) {
+    if (!preg_match('/^[A-Za-z0-9_.-]{3,20}$/', $username)) {
+        $error = "Username must be 3 to 20 letters, numbers, dots, dashes or underscores.";
+    } elseif (strlen($password) < 10) {
+        $error = "Password must be at least 10 characters.";
+    } elseif ($password !== $confirm_password) {
         $error = "Passwords do not match.";
     } else {
-        $conn = new mysqli('sql207.infinityfree.com', 'if0_38478569', 'omToGqVcty', 'if0_38478569_Animals');
-        if ($conn->connect_error) {
-            $error = "Database connection failed. Please try again later.";
+        require_once __DIR__ . '/../config/db.php';
+
+        $stmt = $config->prepare("SELECT 1 FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->store_result();
+        $exists = $stmt->num_rows > 0;
+        $stmt->close();
+
+        if ($exists) {
+            $error = "Username already exists.";
         } else {
-            $stmt = $conn->prepare("SELECT username FROM users WHERE username = ?");
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-            $stmt->store_result();
-
-            if ($stmt->num_rows > 0) {
-                $error = "Username already exists.";
-            } else {
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-                $stmt->bind_param("ss", $username, $hashed_password);
-
-                if ($stmt->execute()) {
-                    header("Location: login.php");
-                    exit();
-                } else {
-                    $error = "Registration failed. Please try again.";
-                }
-            }
-
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $config->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+            $stmt->bind_param("ss", $username, $hashed_password);
+            $ok = $stmt->execute();
             $stmt->close();
-            $conn->close();
+            $config->close();
+            if ($ok) {
+                header("Location: login.php");
+                exit();
+            }
+            $error = "Registration failed. Please try again.";
         }
     }
 }
@@ -135,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="form-container">
     <h1>Register</h1>
     <?php if (!empty($error)): ?>
-        <p style="color: red;"><?php echo $error; ?></p>
+        <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
     <?php endif; ?>
     <form action="register.php" method="POST">
         <label for="username">Username:</label>

@@ -297,7 +297,7 @@ if (!isset($_SESSION['username'])) {
         <!-- Welcome message will be on the left side -->
         <?php
         if (isset($_SESSION['username'])) {
-            echo '<p class="welcome-message">Welcome, ' . $_SESSION['username'] . '!</p>';
+            echo '<p class="welcome-message">Welcome, ' . htmlspecialchars($_SESSION['username']) . '!</p>';
         } else {
             echo '<a href="register.php" class="auth-button">Register</a>';
         }
@@ -331,7 +331,7 @@ if (!isset($_SESSION['username'])) {
     <a href="about.php">About</a>
     <?php
     if (isset($_SESSION['username'])) {
-        echo '<p>Welcome, ' . $_SESSION['username'] . '!</p>';
+        echo '<p>Welcome, ' . htmlspecialchars($_SESSION['username']) . '!</p>';
         echo '<a href="logout.php">Logout</a>';
     } else {
         echo '<a href="register.php">Register</a>';

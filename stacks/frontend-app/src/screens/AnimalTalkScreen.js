@@ -30,14 +30,27 @@ export default function AnimalTalkScreen({ navigation, route }) {
 
   const handlePressOut = async () => {
     setMode('translating');
-    await new Promise(res => setTimeout(res, 1000)); // show “Translating…” briefly
+    try {
+      // Load the clip while "Translating…" shows, so playback starts within
+      // the browser's user-gesture window (autoplay rules on the web).
+      const clip = soundMap[animal] || soundMap.Dog;
+      const [{ sound }] = await Promise.all([
+        Audio.Sound.createAsync(clip),
+        new Promise(res => setTimeout(res, 1000)),
+      ]);
+      if (soundObj) await soundObj.unloadAsync();
+      setSoundObj(sound);
 
-    const clip = soundMap[animal] || soundMap.Dog;
-    const { sound } = await Audio.Sound.createAsync(clip);
-    setSoundObj(sound);
-
-    setMode('playing');
-    await sound.playAsync();
+      // Go back to idle when the clip ends so they can talk again.
+      sound.setOnPlaybackStatusUpdate(status => {
+        if (status.isLoaded && status.didJustFinish) setMode('idle');
+      });
+      setMode('playing');
+      await sound.playAsync();
+    } catch (err) {
+      console.warn('Could not play the clip', err);
+      setMode('idle');
+    }
   };
 
   useEffect(() => {

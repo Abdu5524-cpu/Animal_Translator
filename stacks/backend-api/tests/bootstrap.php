@@ -1,4 +1,4 @@
 <?php
 // tests/bootstrap.php
-// Load your DB connection and/or any setup
-require __DIR__ . '/../config/db.php';
+// Tests talk to a running server over HTTP (API_BASE_URI), so only Composer's autoloader is needed.
+require __DIR__ . '/../vendor/autoload.php';

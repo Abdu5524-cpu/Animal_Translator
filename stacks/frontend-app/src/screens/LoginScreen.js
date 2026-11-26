@@ -2,9 +2,8 @@
 import React, { useState } from 'react';
 import { ScrollView, View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
 import { Card, TextInput as PaperInput, Button as PaperButton } from 'react-native-paper';
-import axios from 'axios';
 import { theme } from '../theme';
-import { API_BASE_URL } from '../config/api';
+import { api, setAuthToken, errorMessage } from '../config/api';
 
 const jakeLogo = require('../assets/images/jake.png');
 
@@ -14,29 +13,23 @@ export default function LoginScreen({ navigation }) {
   const [message, setMessage] = useState('');
 
   const handleLogin = async () => {
-    const safeUsername = encodeURIComponent(username);
-    const safePassword = encodeURIComponent(password);
+    if (!username.trim() || !password) {
+      setMessage('⚠️ Enter your username and password.');
+      return;
+    }
 
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/login_api_get.php?username=${safeUsername}&password=${safePassword}`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': 'application/json',
-          },
-        }
-      );
-
-      if (response.data.success) {
-        setMessage('✅ Login successful!');
-        navigation.replace('Purchases', { username });
-      } else {
-        setMessage('❌ Login failed: ' + response.data.message);
-      }
+      // POST keeps the password out of the URL, server logs and browser history.
+      const { data } = await api.post('/login_api_get.php', {
+        username: username.trim(),
+        password,
+      });
+      setAuthToken(data.token);
+      setMessage('✅ Login successful!');
+      navigation.replace('Purchases', { username: data.username });
     } catch (error) {
-      console.error('Axios error:', error);
-      setMessage('⚠️ Error connecting to server.');
+      const failed = error?.response?.status === 401;
+      setMessage(failed ? '❌ Wrong username or password.' : '⚠️ ' + errorMessage(error, 'Error connecting to server.'));
     }
   };
 
@@ -55,6 +48,8 @@ export default function LoginScreen({ navigation }) {
             label="Username"
             value={username}
             onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
             mode="outlined"
             outlineColor={theme.colors.primary}
             activeOutlineColor={theme.colors.primary}

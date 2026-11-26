@@ -11,9 +11,8 @@ import {
 import { Card, Button as PaperButton, Snackbar } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import ConfettiCannon from 'react-native-confetti-cannon';
-import axios from 'axios';
 import { theme } from '../theme';
-import { API_BASE_URL } from '../config/api';
+import { api, errorMessage, isUnauthorized } from '../config/api';
 
 const animalMessages = {
   Dog: "🐶 Woof! Let's talk about squirrels.",
@@ -25,8 +24,7 @@ const animalMessages = {
   Other: "✨ Thanks for picking something exotic!",
 };
 
-export default function MakePurchaseScreen({ navigation, route }) {
-  const { username } = route.params;
+export default function MakePurchaseScreen({ navigation }) {
   const [selectedAnimal, setSelectedAnimal] = useState('');
   const [previewMessage, setPreviewMessage] = useState('');
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -39,27 +37,19 @@ export default function MakePurchaseScreen({ navigation, route }) {
     }
 
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/makePurchase_api.php`,
-        {
-          params: { username, animal: selectedAnimal },
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
-      if (res.data.success) {
-        // show confetti + snackbar
-        setSnackbarVisible(true);
-        setConfettiCount(c => c + 1);
-        // navigate back after a short delay
-        setTimeout(() => navigation.replace('Purchases', { username }), 2000);
-      } else {
-        setPreviewMessage(`❌ ${res.data.message}`);
+      // The server takes the username from the login token, not from the request.
+      await api.post('/makePurchase_api.php', { animal: selectedAnimal });
+      setSnackbarVisible(true);
+      setConfettiCount(c => c + 1);
+      // Go back to the existing list screen (it refreshes when it regains focus)
+      // instead of stacking a second copy of it.
+      setTimeout(() => navigation.goBack(), 2000);
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        navigation.replace('Login');
+        return;
       }
-    } catch {
-      setPreviewMessage('⚠️ Network error, please try again.');
+      setPreviewMessage(`❌ ${errorMessage(err, 'Network error, please try again.')}`);
     }
   };
 

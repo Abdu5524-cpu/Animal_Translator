@@ -1,54 +1,35 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json");
+// GET (Authorization: Bearer <token>) -> { success, purchases: [{purchase_id, animal, time_date}] }
+require_once __DIR__ . '/../config/api.php';
+require_once __DIR__ . '/../config/auth.php';
 
-$username = $_GET['username'] ?? '';
+// The username comes from the signed token, never from the request,
+// so one user can no longer read another user's purchases.
+$username = require_user();
 
-if (empty($username)) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Username missing."
-    ]);
-    exit();
-}
+require_once __DIR__ . '/../config/db.php';
 
-require_once __DIR__ . "/../config/db.php";
-
-if ($config->connect_error) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Database connection failed."
-    ]);
-    exit();
-}
-
-// ← Include purchase_id in the result set
-$stmt = $config->prepare("
-    SELECT
-        purchase_id,
-        animal,
-        time_date
-    FROM animals
-    WHERE username = ?
-");
-$stmt->bind_param("s", $username);
+$stmt = $config->prepare('
+    SELECT purchase_id, animal, time_date
+      FROM animals
+     WHERE username = ?
+  ORDER BY time_date DESC, purchase_id DESC
+');
+$stmt->bind_param('s', $username);
 $stmt->execute();
 $result = $stmt->get_result();
 
 $purchases = [];
 while ($row = $result->fetch_assoc()) {
-    // Each $row now has ['purchase_id', 'animal', 'time_date']
     $purchases[] = [
-        "purchase_id" => (int)$row["purchase_id"],
-        "animal"      => $row["animal"],
-        "time_date"   => $row["time_date"]
+        'purchase_id' => (int)$row['purchase_id'],
+        'animal'      => $row['animal'],
+        // ISO 8601 so every JavaScript engine (including Hermes) can parse it.
+        'time_date'   => str_replace(' ', 'T', (string)$row['time_date']),
     ];
 }
 
 $stmt->close();
 $config->close();
 
-echo json_encode([
-    "success"   => true,
-    "purchases" => $purchases
-]);
+json_out(['success' => true, 'purchases' => $purchases]);

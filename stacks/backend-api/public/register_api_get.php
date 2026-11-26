@@ -1,68 +1,50 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// POST { username, password, confirm_password } -> { success, message }
+// (File name kept for compatibility; credentials are no longer accepted in the URL.)
+require_once __DIR__ . '/../config/api.php';
+require_method('POST');
 
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json");
+$username = input('username', false);
+$password = input('password', false);
+$confirm  = input('confirm_password', false);
 
-// Inputs
-$username = $_GET['username']         ?? '';
-$password = $_GET['password']         ?? '';
-$confirm  = $_GET['confirm_password'] ?? '';
-
-$response = [
-  'success' => false,
-  'debug'   => []
-];
-
-// Echo what we received
-$response['debug'][] = "Got username='{$username}'";
-
-// Validate
+if ($username === '' || $password === '') {
+    json_out(['success' => false, 'message' => 'Missing username or password.'], 400);
+}
+if (!preg_match('/^[A-Za-z0-9_.-]{3,20}$/', $username)) {
+    json_out(['success' => false, 'message' => 'Username must be 3 to 20 letters, numbers, dots, dashes or underscores.'], 400);
+}
+if (strlen($password) < 8) {
+    json_out(['success' => false, 'message' => 'Password must be at least 8 characters.'], 400);
+}
 if ($password !== $confirm) {
-  $response['debug'][] = 'Passwords mismatch';
-  $response['message'] = "Passwords do not match.";
-} elseif ($username === '' || $password === '') {
-  $response['debug'][] = 'Missing fields';
-  $response['message'] = "Missing username or password.";
-} else {
-  require_once __DIR__ . "/../config/db.php";
-  $response['debug'][] = "Connected to DB: " . $config->host_info;
-
-  // Dump all rows in users
-  $all = [];
-  $res = $config->query("SELECT username FROM users");
-  while ($r = $res->fetch_assoc()) {
-    $all[] = $r['username'];
-  }
-  $response['debug'][] = "All users in table: " . json_encode($all);
-
-  // Now check existence
-  $stmt = $config->prepare("SELECT username FROM users WHERE username = ?");
-  $stmt->bind_param("s", $username);
-  $stmt->execute();
-  $stmt->store_result();
-  $count = $stmt->num_rows;
-  $response['debug'][] = "Found rows matching '{$username}': {$count}";
-
-  if ($count > 0) {
-    $response['message'] = "Username already exists.";
-  } else {
-    $stmt = $config->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $hashed = password_hash($password, PASSWORD_DEFAULT);
-    $stmt->bind_param("ss", $username, $hashed);
-    if ($stmt->execute()) {
-      $response['success'] = true;
-      $response['message'] = "Registration successful.";
-    } else {
-      $response['debug'][] = "Insert error: " . $config->error;
-      $response['message'] = "Error creating user.";
-    }
-  }
-
-  $stmt->close();
-  $config->close();
+    json_out(['success' => false, 'message' => 'Passwords do not match.'], 400);
 }
 
-echo json_encode($response, JSON_PRETTY_PRINT);
+require_once __DIR__ . '/../config/db.php';
+
+$stmt = $config->prepare('SELECT 1 FROM users WHERE username = ?');
+$stmt->bind_param('s', $username);
+$stmt->execute();
+$stmt->store_result();
+$exists = $stmt->num_rows > 0;
+$stmt->close();
+
+if ($exists) {
+    $config->close();
+    json_out(['success' => false, 'message' => 'Username already exists.'], 409);
+}
+
+$hashed = password_hash($password, PASSWORD_DEFAULT);
+$stmt = $config->prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+$stmt->bind_param('ss', $username, $hashed);
+$ok = $stmt->execute();
+if (!$ok) {
+    error_log('Register insert failed: ' . $config->error);
+}
+$stmt->close();
+$config->close();
+
+$ok
+    ? json_out(['success' => true, 'message' => 'Registration successful.'], 201)
+    : json_out(['success' => false, 'message' => 'Error creating user.'], 500);

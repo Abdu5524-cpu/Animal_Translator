@@ -1,57 +1,34 @@
 <?php
-// Enable full error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-session_start(); 
+session_start();
 
 if (isset($_SESSION['username'])) {
     header("Location: index.php");
     exit();
 }
 $error = "";
-$tokenResponse = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    $conn = new mysqli('sql207.infinityfree.com', 'if0_38478569', 'omToGqVcty', 'if0_38478569_Animals');
-    if ($conn->connect_error) {
-        $error = "Database connection failed. Please try again later.";
-    } else {
-        $stmt = $conn->prepare("SELECT password FROM users WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->store_result();
-        $stmt->bind_result($hashed_password);
-        $stmt->fetch();
+    // One shared connection, configured from environment variables.
+    require_once __DIR__ . '/../config/db.php';
 
-        if ($stmt->num_rows > 0 && password_verify($password, $hashed_password)) {
-            // ✅ Generate token
-            $token = bin2hex(random_bytes(16));
+    $stmt = $config->prepare("SELECT password FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->bind_result($hashed_password);
+    $found = $stmt->fetch();
+    $stmt->close();
+    $config->close();
 
-            // ✅ Store token in filesystem (tokens folder)
-            if (!file_exists("tokens")) mkdir("tokens", 0777, true);
-            file_put_contents("tokens/$token.txt", $username);
-
-            // ✅ Respond with JSON if this is a mobile app login
-            if (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
-                header('Content-Type: application/json');
-                echo json_encode(["success" => true, "token" => $token]);
-                exit();
-            } else {
-                // For web login fallback (legacy)
-                $tokenResponse = $token;
-                $_SESSION['username'] = $username; // Store user info in session
-                header("Location: index.php"); // Redirect to dashboard
-            }
-        } else {
-            $error = "Invalid username or password.";
-        }
-
-        $stmt->close();
-        $conn->close();
+    if ($found && password_verify($password, $hashed_password)) {
+        session_regenerate_id(true); // prevent session fixation
+        $_SESSION['username'] = $username;
+        header("Location: index.php");
+        exit();
     }
+    $error = "Invalid username or password.";
 }
 ?>
 <!DOCTYPE html>
@@ -150,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="form-container">
     <h1>Login</h1>
     <?php if (!empty($error)): ?>
-        <p style="color: red;"><?php echo $error; ?></p>
+        <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
     <?php endif; ?>
     <form action="login.php" method="POST">
         <label for="username">Username:</label>
@@ -161,12 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <button type="submit">Login</button>
     </form>
-
-    <?php if (!empty($tokenResponse)): ?>
-        <div class="token-box">
-            Your token: <strong><?php echo htmlspecialchars($tokenResponse); ?></strong>
-        </div>
-    <?php endif; ?>
 
     <p class="register-link">Don't have an account? <a href="register.php">Register here</a>.</p>
 </div>

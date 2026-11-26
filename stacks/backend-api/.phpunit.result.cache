@@ -1,1 +1,0 @@
-{"version":1,"defects":{"ApiTest::testRegisterSuccess":3},"times":{"ApiTest::testRegisterSuccess":0.169,"ApiTest::testLoginSuccess":0.153,"ApiTest::testLoginFailure":0.01,"ApiTest::testGetPurchases":0.009,"ApiTest::testGetPurchasesEmpty":0.09,"PurchaseApiTest::testMakePurchaseMissingUsername":0.041}}

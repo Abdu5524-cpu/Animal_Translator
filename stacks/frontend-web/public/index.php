@@ -30,7 +30,7 @@ session_start();
         <?php
         if (isset($_SESSION['username'])) {
             // Display welcome message on left side when logged in
-            echo '<p class="welcome-message">Welcome, ' . $_SESSION['username'] . '!</p>';
+            echo '<p class="welcome-message">Welcome, ' . htmlspecialchars($_SESSION['username']) . '!</p>';
         } else {
             // Display login button on left side when not logged in
             echo '<a href="login.php" class="auth-button">Login</a>';
@@ -66,7 +66,7 @@ session_start();
     <a href="about.php">About</a>
     <?php
     if (isset($_SESSION['username'])) {
-        echo '<p class="welcome-message">Welcome, ' . $_SESSION['username'] . '!</p>';
+        echo '<p class="welcome-message">Welcome, ' . htmlspecialchars($_SESSION['username']) . '!</p>';
         echo '<a href="logout.php">Logout</a>';
     } else {
         echo '<a href="login.php">Login</a>';

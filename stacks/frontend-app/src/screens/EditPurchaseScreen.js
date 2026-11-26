@@ -1,12 +1,11 @@
 // frontend-app/screens/EditPurchaseScreen.js
 
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
-import axios from 'axios';
-import { API_BASE_URL } from '../config/api';
+import React, { useState } from 'react';
+import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
+import { api, errorMessage, isUnauthorized } from '../config/api';
 
 export default function EditPurchaseScreen({ route, navigation }) {
-  const { username, purchaseId, currentAnimal } = route.params;
+  const { purchaseId, currentAnimal } = route.params;
   const purchase_id = purchaseId;
   const initialAnimal = currentAnimal;
   const [animal, setAnimal] = useState(initialAnimal);
@@ -14,29 +13,22 @@ export default function EditPurchaseScreen({ route, navigation }) {
 
   const handleUpdate = async () => {
     if (!animal.trim()) {
-      Alert.alert('Validation', 'Animal name cannot be empty.');
+      setMessage('❌ Animal name cannot be empty.');
       return;
     }
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/updatePurchase_api.php`,
-        {
-          params: { purchase_id, animal },
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
-      if (response.data.success) {
-        setMessage('✅ ' + response.data.message);
-        setTimeout(() => navigation.navigate('Purchases', { username, refresh: true }), 1000);
-      } else {
-        setMessage('❌ ' + response.data.message);
-      }
+      const { data } = await api.post('/updatePurchase_api.php', {
+        purchase_id,
+        animal: animal.trim(),
+      });
+      setMessage('✅ ' + data.message);
+      setTimeout(() => navigation.goBack(), 1000);
     } catch (err) {
-      console.error(err);
-      setMessage('⚠️ Network or server error');
+      if (isUnauthorized(err)) {
+        navigation.replace('Login');
+        return;
+      }
+      setMessage('❌ ' + errorMessage(err));
     }
   };
 
@@ -46,6 +38,7 @@ export default function EditPurchaseScreen({ route, navigation }) {
       <TextInput
         value={animal}
         onChangeText={setAnimal}
+        maxLength={20}
         style={styles.input}
       />
       <Button title="Save Changes" onPress={handleUpdate} />

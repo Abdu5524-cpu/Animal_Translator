@@ -9,9 +9,8 @@ import {
   Text,
 } from 'react-native';
 import { Card, TextInput as PaperInput, Button as PaperButton } from 'react-native-paper';
-import axios from 'axios';
 import { theme } from '../theme';
-import { API_BASE_URL } from '../config/api';
+import { api, errorMessage } from '../config/api';
 
 const jakeLogo = require('../assets/images/jake.png');
 
@@ -28,25 +27,15 @@ export default function RegisterScreen({ navigation }) {
     }
 
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/register_api_get.php`,
-        {
-          params: { username, password, confirm_password: confirm },
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
-      if (res.data.success) {
-        setMessage('✅ Registration successful! Redirecting...');
-        setTimeout(() => navigation.replace('Login'), 1500);
-      } else {
-        setMessage(`❌ ${res.data.message}`);
-      }
+      await api.post('/register_api_get.php', {
+        username: username.trim(),
+        password,
+        confirm_password: confirm,
+      });
+      setMessage('✅ Registration successful! Redirecting...');
+      setTimeout(() => navigation.replace('Login'), 1500);
     } catch (err) {
-      console.error(err);
-      setMessage('⚠️ Network error, please try again.');
+      setMessage(`❌ ${errorMessage(err, 'Network error, please try again.')}`);
     }
   };
 

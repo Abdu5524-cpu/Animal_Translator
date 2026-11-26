@@ -1,26 +1,44 @@
 <?php
 session_start();
+
+if (!isset($_SESSION["username"])) {
+    header("Location: login.php");
+    exit();
+}
+
 require_once __DIR__ . "/../config/db.php";
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"]) && isset($_POST["animal"])) {
-    $purchase_id = $_POST["purchase_id"];
-    $animal = $_POST["animal"];
+    $purchase_id = (int)$_POST["purchase_id"];
+    $animal = trim($_POST["animal"]);
     $username = $_SESSION["username"];
 
     // If "Other" was selected, use the value from the custom input
     if ($animal === "Other" && !empty($_POST["other_animal"])) {
-        $animal = $_POST["other_animal"];
+        $animal = trim($_POST["other_animal"]);
     }
 
-    $sql = "UPDATE animals SET animal = ? WHERE purchase_id = ? AND username = ?";
-    $stmt = $config->prepare($sql);
-    $stmt->bind_param("sis", $animal, $purchase_id, $username);
+    // Ownership check first, so "not yours" and "unchanged" aren't confused.
+    $check = $config->prepare("SELECT 1 FROM animals WHERE purchase_id = ? AND username = ?");
+    $check->bind_param("is", $purchase_id, $username);
+    $check->execute();
+    $check->store_result();
+    $owned = $check->num_rows > 0;
+    $check->close();
 
-    if ($stmt->execute()) {
-        $message = "Update successful for Purchase ID: $purchase_id.";
+    if (!$owned) {
+        $message = "No purchase with ID $purchase_id was found on your account.";
+    } elseif ($animal === "" || mb_strlen($animal) > 20) {
+        $message = "Please enter an animal name of 20 characters or fewer.";
     } else {
-        $message = "Update failed. Please try again.";
+        $sql = "UPDATE animals SET animal = ? WHERE purchase_id = ? AND username = ?";
+        $stmt = $config->prepare($sql);
+        $stmt->bind_param("sis", $animal, $purchase_id, $username);
+        $message = $stmt->execute()
+            ? "Update successful for Purchase ID: $purchase_id."
+            : "Update failed. Please try again.";
+        $stmt->close();
     }
 }
 ?>

@@ -1,20 +1,26 @@
 <?php
 session_start();
+
+if (!isset($_SESSION["username"])) {
+    header("Location: login.php");
+    exit();
+}
+
 require_once __DIR__ . "/../config/db.php";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["purchase_id"])) {
-    $purchase_id = $_POST["purchase_id"];
+    $purchase_id = (int)$_POST["purchase_id"];
     $username = $_SESSION["username"];
 
     $sql = "DELETE FROM animals WHERE purchase_id = ? AND username = ?";
     $stmt = $config->prepare($sql);
     $stmt->bind_param("is", $purchase_id, $username);
-
-    if ($stmt->execute()) {
-        $message = "Refund successful for Purchase ID: $purchase_id.";
-    } else {
-        $message = "Refund failed. Please try again.";
-    }
+    $stmt->execute();
+    // affected_rows is 0 when the ID doesn't exist or belongs to someone else.
+    $message = $stmt->affected_rows > 0
+        ? "Refund successful for Purchase ID: $purchase_id."
+        : "No purchase with ID $purchase_id was found on your account.";
+    $stmt->close();
 }
 ?>
 

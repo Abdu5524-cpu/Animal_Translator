@@ -1,27 +1,26 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json");
+// POST { purchase_id } (Authorization: Bearer <token>) -> { success, message }
+require_once __DIR__ . '/../config/api.php';
+require_once __DIR__ . '/../config/auth.php';
+require_method('POST');
 
-require_once __DIR__ . "/../config/db.php";
+$username = require_user();
+$id       = filter_var(input('purchase_id'), FILTER_VALIDATE_INT);
 
-$purchase_id = $_GET['purchase_id'] ?? '';
-$response = ['success' => false];
-
-if ($purchase_id === '') {
-  $response['message'] = "Missing purchase_id.";
-} else {
-  $stmt = $config->prepare("DELETE FROM animals WHERE purchase_id = ?");
-  $stmt->bind_param("i", $purchase_id);
-
-  if ($stmt->execute()) {
-    $response['success'] = true;
-    $response['message'] = "Purchase refunded.";
-  } else {
-    $response['message'] = "Error: " . $config->error;
-  }
-
-  $stmt->close();
+if ($id === false) {
+    json_out(['success' => false, 'message' => 'Missing purchase_id.'], 400);
 }
 
+require_once __DIR__ . '/../config/db.php';
+
+// "AND username = ?" makes sure people can only refund their own purchases.
+$stmt = $config->prepare('DELETE FROM animals WHERE purchase_id = ? AND username = ?');
+$stmt->bind_param('is', $id, $username);
+$stmt->execute();
+$deleted = $stmt->affected_rows;
+$stmt->close();
 $config->close();
-echo json_encode($response);
+
+$deleted > 0
+    ? json_out(['success' => true, 'message' => 'Purchase refunded.'])
+    : json_out(['success' => false, 'message' => 'Purchase not found.'], 404);

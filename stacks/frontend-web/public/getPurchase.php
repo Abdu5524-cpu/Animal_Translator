@@ -1,5 +1,11 @@
 <?php
 session_start();
+
+if (!isset($_SESSION["username"])) {
+    header("Location: login.php");
+    exit();
+}
+
 require_once __DIR__ . "/../config/db.php";
 
 function getFilteredPurchases($sort, $filter) {

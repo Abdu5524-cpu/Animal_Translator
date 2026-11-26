@@ -1,34 +1,36 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 session_start();
-require_once __DIR__ . "/../config/db.php";
 
 if (!isset($_SESSION["username"])) {
-    die("No user logged in. Session username missing.");
+    header("Location: login.php");
+    exit();
 }
+
+require_once __DIR__ . "/../config/db.php";
 
 $success_message = "";
 $animal_bought = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["animal"])) {
-    $animal = $_POST["animal"];
+    $animal = trim($_POST["animal"]);
     if ($animal === "Other" && isset($_POST["other_animal"])) {
-        $animal = $_POST["other_animal"];
+        $animal = trim($_POST["other_animal"]);
     }
     $username = $_SESSION["username"];
 
-    $sql = "INSERT INTO animals (username, animal, time_date) VALUES (?, ?, NOW())";
-    $stmt = $config->prepare($sql);
-    $stmt->bind_param("ss", $username, $animal);
-
-    if ($stmt->execute()) {
-        $success_message = "Success! You selected translator software for <strong>" . htmlspecialchars($animal) . "</strong>!";
-        $animal_bought = htmlspecialchars($animal);
+    if ($animal === "" || mb_strlen($animal) > 20) {
+        $success_message = "❌ Please enter an animal name of 20 characters or fewer.";
     } else {
-        $success_message = "❌ Error saving your purchase. Please try again.";
+        $sql = "INSERT INTO animals (username, animal, time_date) VALUES (?, ?, NOW())";
+        $stmt = $config->prepare($sql);
+        $stmt->bind_param("ss", $username, $animal);
+
+        if ($stmt->execute()) {
+            $success_message = "Success! You selected translator software for <strong>" . htmlspecialchars($animal) . "</strong>!";
+            $animal_bought = $animal; // raw; escaped where it is printed
+        } else {
+            $success_message = "❌ Error saving your purchase. Please try again.";
+        }
     }
 }
 ?>
@@ -334,7 +336,12 @@ function toggleOtherInput() {
 }
 <?php if (!empty($success_message) && !empty($animal_bought)): ?>
     window.onload = function() {
-        document.getElementById('successText').innerHTML = "✅ Success! You selected translator software for <strong><?php echo $animal_bought; ?></strong>!";
+        const strong = document.createElement('strong');
+        strong.textContent = <?php echo json_encode($animal_bought, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const successText = document.getElementById('successText');
+        successText.textContent = "✅ Success! You selected translator software for ";
+        successText.appendChild(strong);
+        successText.appendChild(document.createTextNode("!"));
         document.getElementById('successModal').style.display = "block";
         document.getElementById('buyForm').style.display = "none";
 

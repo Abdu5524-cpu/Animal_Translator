@@ -1,101 +1,95 @@
 <?php
-// tests/ApiTest.php
+declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
 use GuzzleHttp\Client;
+use PHPUnit\Framework\TestCase;
 
-class ApiTest extends TestCase
+/** Register and login flow. */
+final class ApiTest extends TestCase
 {
     private Client $client;
-    private string $password = 'test123';
+    private string $password = 'test12345';
 
     protected function setUp(): void
     {
-        $baseUri = getenv('API_BASE_URI') ?: 'http://localhost/stacks/backend-api/public/';
         $this->client = new Client([
-            'base_uri'    => $baseUri,
+            'base_uri'    => getenv('API_BASE_URI') ?: 'http://localhost:8000/',
             'http_errors' => false,
         ]);
     }
 
+    private function newUsername(): string
+    {
+        return 'pu_' . substr(uniqid(), -10);
+    }
+
+    private function register(string $username, ?string $confirm = null): array
+    {
+        $res = $this->client->post('register_api_get.php', ['json' => [
+            'username'         => $username,
+            'password'         => $this->password,
+            'confirm_password' => $confirm ?? $this->password,
+        ]]);
+        return [$res->getStatusCode(), json_decode((string)$res->getBody(), true)];
+    }
+
     public function testRegisterSuccess(): void
     {
-        // generate a fresh username each run
-        $username = 'phpunit_' . uniqid();
-
-        $res = $this->client->get('register_api_get.php', [
-            'query' => [
-                'username'         => $username,
-                'password'         => $this->password,
-                'confirm_password' => $this->password,
-            ],
-        ]);
-
-        // your API returns 200 for success
-        $this->assertEquals(200, $res->getStatusCode());
-
-        $data = json_decode((string)$res->getBody(), true);
-        $this->assertTrue($data['success'], "Expected registration to succeed for $username");
+        [$status, $data] = $this->register($this->newUsername());
+        $this->assertSame(201, $status);
+        $this->assertTrue($data['success']);
     }
 
-    public function testLoginSuccess(): void
+    public function testRegisterDoesNotLeakOtherUsers(): void
     {
-        // register a new user right here
-        $username = 'phpunit_' . uniqid();
-        $reg = $this->client->get('register_api_get.php', [
-            'query' => [
-                'username'         => $username,
-                'password'         => $this->password,
-                'confirm_password' => $this->password,
-            ],
-        ]);
-        $this->assertTrue(json_decode((string)$reg->getBody(), true)['success']);
-
-        // now login with that same user
-        $res = $this->client->get('login_api_get.php', [
-            'query' => [
-                'username' => $username,
-                'password' => $this->password,
-            ],
-        ]);
-        $this->assertEquals(200, $res->getStatusCode());
-
-        $data = json_decode((string)$res->getBody(), true);
-        $this->assertTrue($data['success'], "Expected login to succeed for $username");
+        [, $data] = $this->register($this->newUsername());
+        $this->assertArrayNotHasKey('debug', $data);
     }
 
-    public function testLoginFailure(): void
+    public function testRegisterDuplicate(): void
     {
-        $res = $this->client->get('login_api_get.php', [
-            'query' => ['username' => 'no_such_user', 'password' => 'wrongpass'],
-        ]);
-        $this->assertEquals(200, $res->getStatusCode());
-
-        $data = json_decode((string)$res->getBody(), true);
-        $this->assertFalse($data['success'], "Expected login to fail for invalid credentials");
+        $username = $this->newUsername();
+        $this->register($username);
+        [$status, $data] = $this->register($username);
+        $this->assertSame(409, $status);
+        $this->assertFalse($data['success']);
     }
 
-    public function testGetPurchasesEmpty(): void
+    public function testRegisterPasswordMismatch(): void
     {
-        // register a fresh user with no purchases
-        $username = 'phpunit_' . uniqid();
-        $reg = $this->client->get('register_api_get.php', [
-            'query' => [
-                'username'         => $username,
-                'password'         => $this->password,
-                'confirm_password' => $this->password,
-            ],
-        ]);
-        $this->assertTrue(json_decode((string)$reg->getBody(), true)['success']);
+        [$status, $data] = $this->register($this->newUsername(), 'different123');
+        $this->assertSame(400, $status);
+        $this->assertFalse($data['success']);
+    }
 
-        // fetching purchases returns an empty array
-        $res = $this->client->get('getPurchase_api.php', [
-            'query' => ['username' => $username],
-        ]);
-        $this->assertEquals(200, $res->getStatusCode());
+    public function testCredentialsInUrlAreRejected(): void
+    {
+        $res = $this->client->get('login_api_get.php', ['query' => ['username' => 'a', 'password' => 'b']]);
+        $this->assertSame(405, $res->getStatusCode());
+    }
 
+    public function testLoginReturnsToken(): void
+    {
+        $username = $this->newUsername();
+        $this->register($username);
+
+        $res  = $this->client->post('login_api_get.php', ['json' => ['username' => $username, 'password' => $this->password]]);
         $data = json_decode((string)$res->getBody(), true);
-        $this->assertIsArray($data['purchases'], "Expected 'purchases' to be an array");
-        $this->assertCount(0, $data['purchases'], "New user should have zero purchases");
+
+        $this->assertSame(200, $res->getStatusCode());
+        $this->assertTrue($data['success']);
+        $this->assertCount(3, explode('.', $data['token']));
+    }
+
+    public function testLoginWrongPassword(): void
+    {
+        $username = $this->newUsername();
+        $this->register($username);
+
+        $res  = $this->client->post('login_api_get.php', ['json' => ['username' => $username, 'password' => 'wrongpass1']]);
+        $data = json_decode((string)$res->getBody(), true);
+
+        $this->assertSame(401, $res->getStatusCode());
+        $this->assertFalse($data['success']);
     }
 }

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   FlatList,
-  Alert,
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -15,11 +14,13 @@ import {
   Button as PaperButton,
   IconButton,
 } from 'react-native-paper';
-import axios from 'axios';
 import { Swipeable } from 'react-native-gesture-handler';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { theme } from '../theme';
-import { API_BASE_URL } from '../config/api';
+import { api, clearAuthToken, errorMessage, isUnauthorized } from '../config/api';
+import { notify, confirm } from '../utils/notify';
+import { parseDbDate, formatDbDate } from '../utils/date';
 
 export default function PurchaseListScreen({ navigation, route }) {
   const { username } = route.params;
@@ -30,62 +31,67 @@ export default function PurchaseListScreen({ navigation, route }) {
   const [sortOrder, setSortOrder] = useState('newest');
   const [error, setError] = useState(null);
 
+  const logout = useCallback(() => {
+    clearAuthToken();
+    navigation.replace('Login');
+  }, [navigation]);
+
   const fetchPurchases = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(
-        `${API_BASE_URL}/getPurchase_api.php?username=${encodeURIComponent(
-          username
-        )}`
-      );
-      if (data.success) {
-        setPurchases(data.purchases);
-        setError(null);
-      } else {
-        setPurchases([]);
-        setError(data.message);
+      const { data } = await api.get('/getPurchase_api.php');
+      setPurchases(data.purchases);
+      setError(null);
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
       }
-    } catch {
-      setError('⚠️ Error fetching purchases.');
+      setError('⚠️ ' + errorMessage(err, 'Error fetching purchases.'));
     } finally {
       setLoading(false);
     }
-  }, [username]);
+  }, [logout]);
 
-  useEffect(() => {
-    fetchPurchases();
-  }, [fetchPurchases]);
+  // Refetch every time this screen comes back into view (after a new
+  // purchase or an edit), not only on first mount.
+  useFocusEffect(
+    useCallback(() => {
+      fetchPurchases();
+    }, [fetchPurchases])
+  );
 
   useEffect(() => {
     let list = purchases.filter(item =>
       item.animal.toLowerCase().includes(searchQuery.toLowerCase())
     );
     list.sort((a, b) => {
-      const da = new Date(a.time_date);
-      const db = new Date(b.time_date);
+      const da = parseDbDate(a.time_date);
+      const db = parseDbDate(b.time_date);
       return sortOrder === 'newest' ? db - da : da - db;
     });
     setFiltered(list);
   }, [purchases, searchQuery, sortOrder]);
 
-  const handleRefund = async id => {
+  const doRefund = async id => {
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/refundPurchase_api.php?purchase_id=${id}`
-      );
-      if (res.data.success) {
-        Alert.alert('Refunded', res.data.message);
-        fetchPurchases();
-      } else {
-        Alert.alert('Error', res.data.message);
+      const { data } = await api.post('/refundPurchase_api.php', { purchase_id: id });
+      notify('Refunded', data.message);
+      fetchPurchases();
+    } catch (err) {
+      if (isUnauthorized(err)) {
+        logout();
+        return;
       }
-    } catch {
-      Alert.alert('Error', 'Network or server error');
+      notify('Error', errorMessage(err));
     }
   };
 
+  const handleRefund = id =>
+    confirm('Refund this purchase?', 'This removes it from your list.', () => doRefund(id));
+
   const handleEdit = (id, animal) => {
-    navigation.navigate('EditPurchase', { username, purchaseId: id, currentAnimal: animal });
+    navigation.navigate('EditPurchase', { purchaseId: id, currentAnimal: animal });
   };
 
   const renderItem = ({ item, index }) => {
@@ -128,7 +134,7 @@ export default function PurchaseListScreen({ navigation, route }) {
                 </Text>
               )}
             </View>
-            <Text style={styles.date}>Purchased: {item.time_date}</Text>
+            <Text style={styles.date}>Purchased: {formatDbDate(item.time_date)}</Text>
 
             {/* Talk Now button */}
             <PaperButton
@@ -163,9 +169,9 @@ export default function PurchaseListScreen({ navigation, route }) {
           <Text style={styles.greeting}>Welcome, {username}!</Text>
           <IconButton
             icon="logout"
-            color={theme.colors.primary}
+            iconColor={theme.colors.primary}
             size={24}
-            onPress={() => navigation.replace('Login')}
+            onPress={logout}
           />
         </View>
         <Text style={styles.subheading}>Your Animal Software Purchases:</Text>
@@ -210,7 +216,7 @@ export default function PurchaseListScreen({ navigation, route }) {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('MakePurchase', { username })}
+        onPress={() => navigation.navigate('MakePurchase')}
       />
     </View>
   );
