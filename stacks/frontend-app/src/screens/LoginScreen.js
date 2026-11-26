@@ -11,6 +11,22 @@ export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const handleDemo = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      // Signs into a shared sample account whose purchases reset on every demo login.
+      const { data } = await api.post('/demo_login_api.php');
+      setAuthToken(data.token);
+      navigation.replace('Purchases', { username: data.username });
+    } catch (error) {
+      setMessage('⚠️ ' + errorMessage(error, 'The demo is unavailable right now.'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!username.trim() || !password) {
@@ -44,6 +60,19 @@ export default function LoginScreen({ navigation }) {
             Welcome to the Animal Translator app!
           </Text>
 
+          <PaperButton
+            mode="contained"
+            icon="play-circle"
+            onPress={handleDemo}
+            loading={busy}
+            disabled={busy}
+            contentStyle={styles.buttonContent}
+            style={styles.demoButton}
+          >
+            Try the demo
+          </PaperButton>
+          <Text style={styles.demoHint}>No sign up needed. Or log in below.</Text>
+
           <PaperInput
             label="Username"
             value={username}
@@ -67,8 +96,9 @@ export default function LoginScreen({ navigation }) {
             style={styles.input}
           />
 
+
           <PaperButton
-            mode="contained"
+            mode="outlined"
             onPress={handleLogin}
             contentStyle={styles.buttonContent}
             style={styles.button}
@@ -96,6 +126,17 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  demoButton: {
+    marginTop: 4,
+    marginBottom: 6,
+    backgroundColor: theme.colors.accent,
+  },
+  demoHint: {
+    textAlign: 'center',
+    color: theme.colors.text,
+    opacity: 0.7,
+    marginBottom: 16,
+  },
   container: {
     flexGrow: 1,
     backgroundColor: '#f3f4f5',

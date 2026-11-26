@@ -111,4 +111,37 @@ final class PurchaseApiTest extends TestCase
         $this->assertSame(204, $res->getStatusCode());
         $this->assertStringContainsString('Authorization', $res->getHeaderLine('Access-Control-Allow-Headers'));
     }
+
+    public function testDemoLoginResetsSampleData(): void
+    {
+        $res   = $this->client->post('demo_login_api.php');
+        $token = json_decode((string)$res->getBody(), true)['token'];
+        [, $list] = $this->call('GET', 'getPurchase_api.php', $token);
+        $this->assertCount(4, $list['purchases']);
+
+        // A visitor refunds everything...
+        foreach ($list['purchases'] as $p) {
+            $this->call('POST', 'refundPurchase_api.php', $token, ['purchase_id' => $p['purchase_id']]);
+        }
+        // ...and the next visitor still gets the full sample list.
+        $res   = $this->client->post('demo_login_api.php');
+        $token = json_decode((string)$res->getBody(), true)['token'];
+        [, $list] = $this->call('GET', 'getPurchase_api.php', $token);
+        $this->assertSame(['Bird', 'Horse', 'Cat', 'Dog'], array_column($list['purchases'], 'animal'));
+    }
+
+    public function testDemoUsernameCannotBeRegistered(): void
+    {
+        $res = $this->client->post('register_api_get.php', ['json' => [
+            'username' => 'demo', 'password' => 'test12345', 'confirm_password' => 'test12345',
+        ]]);
+        $this->assertSame(409, $res->getStatusCode());
+    }
+
+    public function testHealthCheck(): void
+    {
+        $res = $this->client->get('health.php');
+        $this->assertSame(200, $res->getStatusCode());
+        $this->assertTrue(json_decode((string)$res->getBody(), true)['ok']);
+    }
 }

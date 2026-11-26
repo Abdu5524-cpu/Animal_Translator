@@ -1,0 +1,23 @@
+name: Keep the API awake
+
+# Render's free plan sleeps a service after 15 idle minutes, and waking takes
+# about a minute. Pinging every 10 minutes keeps the demo instant for visitors.
+# One always-on free service uses about 744 of Render's 750 free hours a month.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the health check
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then echo "API_BASE_URL is not set yet; skipping."; exit 0; fi
+          curl --fail --silent --show-error --max-time 120 --retry 2 "$API_BASE_URL/health.php"

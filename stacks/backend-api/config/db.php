@@ -9,10 +9,17 @@ $db_name = getenv('DB_NAME') ?: 'Animals';
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 
 mysqli_report(MYSQLI_REPORT_OFF);
-$config = @new mysqli($db_host, $db_user, $db_pass, $db_name, $db_port);
+$config = mysqli_init();
+$flags = 0;
+// Hosted databases such as TiDB Cloud require TLS. Set DB_SSL=true there.
+if (filter_var(getenv('DB_SSL'), FILTER_VALIDATE_BOOLEAN)) {
+    $config->ssl_set(null, null, getenv('DB_SSL_CA') ?: '/etc/ssl/certs/ca-certificates.crt', null, null);
+    $flags = MYSQLI_CLIENT_SSL;
+}
+$connected = @$config->real_connect($db_host, $db_user, $db_pass, $db_name, $db_port, null, $flags);
 
-if ($config->connect_error) {
-    error_log('DB connection failed: ' . $config->connect_error);
+if (!$connected) {
+    error_log('DB connection failed: ' . mysqli_connect_error());
     http_response_code(500);
     // Answer in the format the caller expects, and never leak the driver error.
     $wantsJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')

@@ -14,6 +14,9 @@ if ($username === '' || $password === '') {
 if (!preg_match('/^[A-Za-z0-9_.-]{3,20}$/', $username)) {
     json_out(['success' => false, 'message' => 'Username must be 3 to 20 letters, numbers, dots, dashes or underscores.'], 400);
 }
+if (strtolower($username) === 'demo') {
+    json_out(['success' => false, 'message' => 'Username already exists.'], 409);
+}
 if (strlen($password) < 8) {
     json_out(['success' => false, 'message' => 'Password must be at least 8 characters.'], 400);
 }

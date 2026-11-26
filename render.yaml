@@ -1,0 +1,28 @@
+# Render Blueprint for the Animal Translator API.
+# The database lives on TiDB Cloud Starter (MySQL compatible, TLS required).
+services:
+  - type: web
+    name: animal-translator-api
+    runtime: docker
+    plan: free
+    rootDir: stacks/backend-api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health.php
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "4000"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_NAME
+        value: animal_translator
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://abdu5524-cpu.github.io
